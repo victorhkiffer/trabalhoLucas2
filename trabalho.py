@@ -20,9 +20,12 @@ def escolher_pdf():
 
 def buscar_feriados():
     try:
-        response = requests.get("https://date.nager.at/api/v3/PublicHolidays/2025/BR")
-        response.raise_for_status()
-        return response.json()
+        feriados = []
+        for ano in [2024, 2025, 2026]:  # Buscar feriados para os anos 2024, 2025 e 2026
+            response = requests.get(f"https://date.nager.at/api/v3/PublicHolidays/{ano}/BR")
+            response.raise_for_status()
+            feriados.extend(response.json())  # Adicionar os feriados ao conjunto total
+        return feriados
     except requests.RequestException as e:
         messagebox.showerror("Erro", f"Não foi possível buscar os feriados: {e}")
         return []
@@ -36,24 +39,38 @@ def verificar_feriados_no_pdf(caminho_pdf):
         for pagina in leitor.pages:
             texto_pdf += pagina.extract_text()
 
-        
+        # Verificar o texto extraído do PDF
+        print("Texto extraído do PDF:")
+        print(texto_pdf)
+
+        # Extraindo datas do texto do PDF (formato: YYYY-MM-DD)
         datas_no_pdf = re.findall(r"\d{4}-\d{2}-\d{2}", texto_pdf)
 
-        
+        print("Datas extraídas do PDF:")
+        print(datas_no_pdf)
+
+        # Limpando e formatando as datas extraídas do PDF
+        datas_no_pdf = [data.strip() for data in datas_no_pdf]
+
+        # Buscando os feriados de 2024, 2025 e 2026
         feriados = buscar_feriados()
+        print("Feriados retornados pela API:")
+        print(feriados)
+
+        # Criando um dicionário com todas as datas de feriados
         datas_feriados = {feriado["date"]: feriado["localName"] for feriado in feriados}
 
-        
+        # Verificando se as datas do PDF são feriados
         resultado = "Verificação de Feriados:\n"
         for data in datas_no_pdf:
-           
+            # Convertendo a data para o formato DD/MM/YYYY
             data_formatada = f"{data[8:10]}/{data[5:7]}/{data[0:4]}"
             if data in datas_feriados:
                 resultado += f"A data {data_formatada} encontrada no PDF é feriado: {datas_feriados[data]}.\n"
             else:
                 resultado += f"A data {data_formatada} encontrada no PDF não é feriado.\n"
 
-        
+        # Atualizando a interface com o resultado
         label_feriados.config(text=resultado)
 
     except Exception as e:
